@@ -17,7 +17,9 @@ static void fileHandle(int servSock, struct sockaddr_in clientAddr, socklen_t cl
 	memset(buffer, 0, CHUNK+SEQ_SIZE+3);
 	
 	// WRQ HANDLING
-	
+	// get the file name
+
+
 	while(1) {
 		int ret = reliableReceiver(servSock, clientAddr, clientAddrSize, buffer);
 		if (ret == 1) {
@@ -26,39 +28,51 @@ static void fileHandle(int servSock, struct sockaddr_in clientAddr, socklen_t cl
 		}
 	}
 
-	/*
-	int retCode = recvfrom(servSock, buffer, CHUNK, 0, (struct sockaddr *) &clientAddr, &clientAddrSize);
-	errorMsg(retCode, "recv file name");
+	// start handling file
+	// seq check
+	
+	int chunk_count = 1;
 
+	// create/open local file
+	
 	FILE *f = fopen(buffer, "w");
 	if (!f) {
 		perror("ERROR openning file\n");
 		exit(1);
 	}
 
+	int payload_size = 0;
+	int ret = 0;
+
 	while(1) {
 		
-		retCode = recvfrom(servSock, buffer, CHUNK, 0, (struct sockaddr *) &clientAddr, &clientAddrSize);
-		errorMsg(retCode, "recv file");
+		ret = reliableReceiver(servSock, clientAddr, clientAddrSize, buffer);
 		
-		// FIN
-		if (strcmp(buffer, "FILE_TRANSFER_DONE") == 0) {
-			printf("FINISHED\n");
+		if (ret == 0) {
+			printf("Packet loss maybe\n");
+		} else if (ret == 1) {
+			printf("ERROR OCCURED\n");
+		} else if (ret == 2) {
+			printf("Write data to file\n");
+			if ( fwrite(buffer, 1, strlen(buffer), f) < 0) {
+				perror("ERROR writing file");
+				exit(1);
+			}
+			chunk_count++;
+		} else if (ret == 3) {
+			printf("END\n");
+			if ( fwrite(buffer, 1, strlen(buffer), f) < 0) {
+				perror("ERROR writing file");
+				exit(1);
+			}
+			chunk_count++;
 			break;
 		}
 
-		if ( fwrite(buffer, 1, retCode, f) < 0) {
-			perror("ERROR writing file");
-			exit(1);
-		}
-		memset(buffer, 0, CHUNK);
-		
-		retCode = sendto(servSock, "RESPONSE", 8, 0, (struct sockaddr*) &clientAddr, clientAddrSize);
-		errorMsg(retCode, "response error");
+		memset(buffer, 0, CHUNK+SEQ_SIZE+3);
 	}
 
 	fclose(f);
-	*/
 }
 
 void udpServerRun(char *port) {

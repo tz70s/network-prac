@@ -34,15 +34,20 @@ static void fileHandle(int sock, char *filename, struct sockaddr_in servAddr, so
 			break;
 		}
 	}
-	/*
+	
 	// file open
+	
 	file = fopen(filename, "r");
 	int seq = 1;
 
 	if(file) {
+	
 		while ((nread = fread(buffer, 1, sizeof(buffer), file)) > 0) {
+			
 			while(1) {
+			
 				if (reliableSender(sock, buffer, nread, seq, servAddr, servAddrLen) == 0) {
+					printf("SEND SUCCESS\n");
 					seq++;
 					break;
 				}
@@ -50,11 +55,9 @@ static void fileHandle(int sock, char *filename, struct sockaddr_in servAddr, so
 			memset(buffer, 0, CHUNK);
 		}
 	}
-	printf("TOTAL TRANSFER SIZE : %lu \n", totalTrans);
-	statusCode = sendto(sock, "FILE_TRANSFER_DONE",CHUNK, 0, (struct sockaddr *) &servAddr, servAddrLen);
-	errorMsg(statusCode, "write end msg");
+	//printf("TOTAL TRANSFER SIZE : %lu \n", totalTrans);
 	fclose(file);
-	*/
+	
 }
 
 void udpClientRun(char *host, char *port, char *fileName) {
