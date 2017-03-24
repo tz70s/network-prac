@@ -17,6 +17,7 @@ main:
 
 test:
 	gcc -o $@ $(TESTSRC)
-
+test-clean:
+	rm test
 clean:
-	rm $(TARGET) test
+	rm $(TARGET)

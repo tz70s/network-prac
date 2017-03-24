@@ -1,7 +1,6 @@
 #ifndef RELIABLE_TRANS_H
 #define RELIABLE_TRANS_H
 
-//#include "init.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -15,6 +14,9 @@
 #define CHUNK 1024
 #define SEQ_SIZE 20
 #define WRITE_FILE 3
+
+
+// Multiplex for getting seq numbers
 
 static inline int getSeq(char * seqString, size_t len) {
 	size_t i;
@@ -31,6 +33,8 @@ static inline int getSeq(char * seqString, size_t len) {
 	return atoi(seq);
 }
 
+// Multiplex for getting msg type.
+// I.e. WRQ, DAT 
 
 static inline int getMsgType(char * seqString, size_t len, char * msgType) {
 	
@@ -43,6 +47,7 @@ static inline int getMsgType(char * seqString, size_t len, char * msgType) {
 	}
 }
 
+// Multiplex for playload
 
 static inline void getData(char * seqString, size_t len, char *data) {
 	
@@ -58,6 +63,8 @@ static inline void getData(char * seqString, size_t len, char *data) {
 		}
 	}
 }
+
+// Reliable WRQ message with ACK
 
 static int reliableWRQ(int sock, char *filename, struct sockaddr_in servAddr, socklen_t servAddrLen) {
 	
@@ -79,6 +86,9 @@ static int reliableWRQ(int sock, char *filename, struct sockaddr_in servAddr, so
 	printf("WRQ ACK GET\n");
 	return 0;
 }
+
+// Reliable DATA+SEQ transfer with ACK
+
 static int reliableSender(int sock, char *buffer, size_t buffer_len, int SEQ, struct sockaddr_in servAddr, socklen_t servAddrLen) {
 	
 	int payloadSize = 0;
@@ -104,6 +114,8 @@ static int reliableSender(int sock, char *buffer, size_t buffer_len, int SEQ, st
 	return 0;
 }
 
+// Reliable receiver with ACK+SEQ response
+
 static int reliableReceiver(int sock, struct sockaddr_in clientAddr, socklen_t clientAddrLen, char *payload) {
 	
 	int payloadSize = 0;
@@ -120,6 +132,8 @@ static int reliableReceiver(int sock, struct sockaddr_in clientAddr, socklen_t c
 	
 	getMsgType(buffer, CHUNK+SEQ_SIZE+3, msgType);
 	getData(buffer, CHUNK+SEQ_SIZE+3, seqString);
+
+	// check msge type
 
 	if (strcmp(msgType, "WRQ") == 0) {
 		seq = 0;
