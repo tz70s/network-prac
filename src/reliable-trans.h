@@ -157,22 +157,20 @@ static int reliableReceiver(int sock, struct sockaddr_in clientAddr, socklen_t c
 		strcpy(payload, seqString);
 	} else if (strcmp(msgType, "DAT") == 0) {
 		// get seq
-		getData(buffer, CHUNK+SEQ_SIZE+3, seqString);
 		seq = getSeq(seqString, CHUNK+SEQ_SIZE);
-		
 		getData(seqString, CHUNK+SEQ_SIZE, data);
 		strcpy(payload, data);
 		
 		RET = 2;
 
 		// check chunk for packet loss
-		if (strlen(payload) != CHUNK) {
+		if (sizeof(payload) != CHUNK) {
 			RET = 0;
 			seq = -1;
+			printf("Payload size : %lu\n", sizeof(payload));
 		}
 
 	} else if (strcmp(msgType, "END") == 0) {
-		getData(buffer, CHUNK+SEQ_SIZE+3, seqString);
 		seq = getSeq(seqString, CHUNK+SEQ_SIZE);
 		getData(seqString, CHUNK+SEQ_SIZE, data);
 		strcpy(payload, data);

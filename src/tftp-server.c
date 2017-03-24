@@ -46,6 +46,7 @@ static void fileHandle(int servSock, struct sockaddr_in clientAddr, socklen_t cl
 
 	while(1) {
 		
+		sleep(2);
 		ret = reliableReceiver(servSock, clientAddr, clientAddrSize, buffer);
 		
 		if (ret == 0) {
