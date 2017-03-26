@@ -152,7 +152,7 @@ static int reliableSender(int sock, uint8_t *buffer, size_t buffer_len, int SEQ,
 		return 1;
 	}
 	
-	//printf("RECEIVED ACK : %s\n", seqString);
+	printf("RECEIVED ACK : %s\n", seqString);
 	// check if wrong seq number
 	if (getSeq(seqString, 20) != SEQ) {
 		return 1;
@@ -222,6 +222,8 @@ static _RET_ reliableReceiver(int sock, struct sockaddr_in clientAddr, socklen_t
 
 	payloadSize = sendto(sock, retACK, SEQ_SIZE+3, 0, (struct sockaddr *) &clientAddr, clientAddrLen);
 	errorMsg(payloadSize, "ERROR for ack seq");
+	
+	//sleep(0.1);
 	printf("SEND ACK : %s\n", retACK);
 	
 	return rett;
