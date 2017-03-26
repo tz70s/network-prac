@@ -45,7 +45,6 @@ static void fileHandle(int sock, char *filename, struct sockaddr_in servAddr, so
 		while ((nread = fread(buffer, 1, sizeof(buffer), file)) > 0) {
 			
 			while(1) {
-			
 				if (reliableSender(sock, buffer, nread, seq, servAddr, servAddrLen) == 0) {
 					printf("SEND SUCCESS\n");
 					seq++;
@@ -55,7 +54,6 @@ static void fileHandle(int sock, char *filename, struct sockaddr_in servAddr, so
 			memset(buffer, 0, CHUNK);
 		}
 	}
-	//printf("TOTAL TRANSFER SIZE : %lu \n", totalTrans);
 	fclose(file);
 	
 }
@@ -65,6 +63,8 @@ void udpClientRun(char *host, char *port, char *fileName) {
 	int sock = initUDPClient();
 	struct sockaddr_in servAddr = initUDPAddr(host, atoi(port));
 	socklen_t servAddrLen = sizeof(servAddr);
+	
+	timeout(sock, 1);
 	// connection handle
 	fileHandle(sock, fileName, servAddr, servAddrLen);
 	close(sock);

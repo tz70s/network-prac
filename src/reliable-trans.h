@@ -64,6 +64,26 @@ static inline void getData(char * seqString, size_t len, char *data) {
 	}
 }
 
+// Concact binary string
+
+static inline void concact(char *conString, size_t conLen, char * secString, size_t secLen) {
+	
+	size_t i;
+	for (i = 0; i < secLen; i++) {
+		conString[conLen+i] = secString[i];
+	}
+
+}
+
+static void timeout(int sock, int secs) {
+
+	struct timeval tv;
+	tv.tv_sec = secs;  /* 30 Secs Timeout */
+	tv.tv_usec = 0;  // Not init'ing this can cause strange errors
+	setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv,sizeof(struct timeval));
+
+}
+
 // Reliable WRQ message with ACK
 
 static int reliableWRQ(int sock, char *filename, struct sockaddr_in servAddr, socklen_t servAddrLen) {
@@ -76,20 +96,26 @@ static int reliableWRQ(int sock, char *filename, struct sockaddr_in servAddr, so
 	// WRQ
 	payloadSize = sendto(sock, seqString, CHUNK+SEQ_SIZE+3, 0, (struct sockaddr *) &servAddr, servAddrLen);
 	errorMsg(payloadSize, "ERROR for WRQ");
-	
+
 	printf("SEND WRQ : %s\n", filename);
 
 	// WRQ ACK
 	payloadSize = recvfrom(sock, seqString, SEQ_SIZE+3, 0, (struct sockaddr *) &servAddr, &servAddrLen);
-	errorMsg(payloadSize, "ERROR for WRQ ACK");
 	
+	// Resend for timeout
+	
+	if (payloadSize < 0) {
+		printf("Resend\n");
+		return 1;
+	}
+
 	printf("WRQ ACK GET\n");
 	return 0;
 }
 
 // Reliable DATA+SEQ transfer with ACK
 
-static int reliableSender(int sock, char *buffer, size_t buffer_len, int SEQ, struct sockaddr_in servAddr, socklen_t servAddrLen) {
+static int reliableSender(int sock, uint8_t *buffer, size_t buffer_len, int SEQ, struct sockaddr_in servAddr, socklen_t servAddrLen) {
 	
 	int payloadSize = 0;
 
@@ -104,18 +130,25 @@ static int reliableSender(int sock, char *buffer, size_t buffer_len, int SEQ, st
 	if (buffer_len == CHUNK) {
 		sprintf(seqString, "DAT\n%d\n", SEQ);
 	} else {
-		sprintf(seqString, "END\n%d\n", SEQ);
+		sprintf(seqString, "END\n%lu\n", buffer_len);
+		SEQ = buffer_len;
 	}
-	strcat(seqString, buffer);
-	
+	concact(seqString, strlen(seqString), buffer, buffer_len);
+
 	// send
 	payloadSize = sendto(sock, seqString, CHUNK+SEQ_SIZE+3, 0, (struct sockaddr *) &servAddr, servAddrLen);
 	errorMsg(payloadSize, "ERROR writing payload");
 	
 	// WAIT FOR ACK SEQ
 	payloadSize = recvfrom(sock, seqString, SEQ_SIZE+3, 0, (struct sockaddr *) &servAddr, &servAddrLen);
-	errorMsg(payloadSize, "ERROR recv payload");
-	printf("RECEIVED ACK : %s\n", seqString);
+	
+	// resend timeout
+	if (payloadSize < 0) {
+		printf("Resend\n");
+		return 1;
+	}
+	
+	//printf("RECEIVED ACK : %s\n", seqString);
 	// check if wrong seq number
 	if (getSeq(seqString, 20) != SEQ) {
 		return 1;
@@ -129,10 +162,10 @@ static int reliableSender(int sock, char *buffer, size_t buffer_len, int SEQ, st
 static int reliableReceiver(int sock, struct sockaddr_in clientAddr, socklen_t clientAddrLen, char *payload) {
 	
 	int payloadSize = 0;
-	char buffer [CHUNK+SEQ_SIZE+3];
-	char seqString [CHUNK+SEQ_SIZE];
-	char data [CHUNK];
-	char msgType[3];
+	uint8_t buffer [CHUNK+SEQ_SIZE+3];
+	uint8_t seqString [CHUNK+SEQ_SIZE];
+	uint8_t data [CHUNK];
+	uint8_t msgType[3];
 	int seq = 0;
 	int RET = 0;
 
@@ -149,7 +182,7 @@ static int reliableReceiver(int sock, struct sockaddr_in clientAddr, socklen_t c
 	getMsgType(buffer, CHUNK+SEQ_SIZE+3, msgType);
 	getData(buffer, CHUNK+SEQ_SIZE+3, seqString);
 
-	// check msge type
+	// check msg type
 
 	if (strcmp(msgType, "WRQ") == 0) {
 		seq = 0;
@@ -159,22 +192,15 @@ static int reliableReceiver(int sock, struct sockaddr_in clientAddr, socklen_t c
 		// get seq
 		seq = getSeq(seqString, CHUNK+SEQ_SIZE);
 		getData(seqString, CHUNK+SEQ_SIZE, data);
-		strcpy(payload, data);
+		memcpy(payload, data, CHUNK);
 		
 		RET = 2;
-
-		// check chunk for packet loss
-		if (sizeof(payload) != CHUNK) {
-			RET = 0;
-			seq = -1;
-			printf("Payload size : %lu\n", sizeof(payload));
-		}
 
 	} else if (strcmp(msgType, "END") == 0) {
 		seq = getSeq(seqString, CHUNK+SEQ_SIZE);
 		getData(seqString, CHUNK+SEQ_SIZE, data);
-		strcpy(payload, data);
-		RET = 3;
+		memcpy(payload, data, seq);
+		RET = seq;
 	} else {
 		// ERROR
 		seq = -1;
@@ -182,7 +208,7 @@ static int reliableReceiver(int sock, struct sockaddr_in clientAddr, socklen_t c
 	}
 	
 	// return ACK
-	char retACK[SEQ_SIZE+3];
+	uint8_t retACK[SEQ_SIZE+3];
 	sprintf(retACK,"%d\nACK",seq);
 
 	payloadSize = sendto(sock, retACK, SEQ_SIZE+3, 0, (struct sockaddr *) &clientAddr, clientAddrLen);

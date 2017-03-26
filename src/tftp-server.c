@@ -46,7 +46,7 @@ static void fileHandle(int servSock, struct sockaddr_in clientAddr, socklen_t cl
 
 	while(1) {
 		
-		sleep(2);
+		//sleep(0.3);
 		ret = reliableReceiver(servSock, clientAddr, clientAddrSize, buffer);
 		
 		if (ret == 0) {
@@ -55,14 +55,14 @@ static void fileHandle(int servSock, struct sockaddr_in clientAddr, socklen_t cl
 			printf("ERROR OCCURED\n");
 		} else if (ret == 2) {
 			printf("Write data to file\n");
-			if ( fwrite(buffer, 1, strlen(buffer), f) < 0) {
+			if ( fwrite(buffer, 1, CHUNK, f) < 0) {
 				perror("ERROR writing file");
 				exit(1);
 			}
 			chunk_count++;
-		} else if (ret == 3) {
+		} else {
 			printf("END\n");
-			if ( fwrite(buffer, 1, strlen(buffer), f) < 0) {
+			if ( fwrite(buffer, 1, ret, f) < 0) {
 				perror("ERROR writing file");
 				exit(1);
 			}
@@ -88,7 +88,7 @@ void udpServerRun(char *port) {
 	memset(&clientAddr, 0, sizeof(clientAddr));
 	
 	socklen_t clientAddrSize = sizeof(clientAddr);
-
+	
 	fileHandle(servSock, clientAddr, clientAddrSize);
 
 	close(servSock);
