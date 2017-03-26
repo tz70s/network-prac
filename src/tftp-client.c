@@ -64,7 +64,7 @@ void udpClientRun(char *host, char *port, char *fileName) {
 	struct sockaddr_in servAddr = initUDPAddr(host, atoi(port));
 	socklen_t servAddrLen = sizeof(servAddr);
 	
-	timeout(sock, 1);
+	timeout(sock, 500000);
 	// connection handle
 	fileHandle(sock, fileName, servAddr, servAddrLen);
 	close(sock);

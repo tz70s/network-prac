@@ -15,14 +15,15 @@ static void fileHandle(int servSock, struct sockaddr_in clientAddr, socklen_t cl
 	// initialized receive buffer
 	uint8_t buffer[CHUNK+SEQ_SIZE+3];
 	memset(buffer, 0, CHUNK+SEQ_SIZE+3);
-	
+
 	// WRQ HANDLING
 	// get the file name
 
+	_RET_ rett;
 
 	while(1) {
-		int ret = reliableReceiver(servSock, clientAddr, clientAddrSize, buffer);
-		if (ret == 1) {
+		rett = reliableReceiver(servSock, clientAddr, clientAddrSize, buffer);
+		if (rett.type == 1) {
 			printf("FILE_NAME : %s\n", buffer);
 			break;
 		}
@@ -42,27 +43,30 @@ static void fileHandle(int servSock, struct sockaddr_in clientAddr, socklen_t cl
 	}
 
 	int payload_size = 0;
-	int ret = 0;
-
+	
 	while(1) {
 		
 		//sleep(0.3);
-		ret = reliableReceiver(servSock, clientAddr, clientAddrSize, buffer);
+		rett = reliableReceiver(servSock, clientAddr, clientAddrSize, buffer);
 		
-		if (ret == 0) {
+		if (rett.type == 0) {
 			printf("Packet loss maybe\n");
-		} else if (ret == 1) {
+		} else if (rett.type == 1) {
 			printf("ERROR OCCURED\n");
-		} else if (ret == 2) {
+		} else if (rett.type == 2) {
+			if (rett.seq != chunk_count) {
+				continue;
+			}
 			printf("Write data to file\n");
 			if ( fwrite(buffer, 1, CHUNK, f) < 0) {
 				perror("ERROR writing file");
 				exit(1);
 			}
 			chunk_count++;
-		} else {
+		} else if (rett.type == 3) {
 			printf("END\n");
-			if ( fwrite(buffer, 1, ret, f) < 0) {
+			
+			if ( fwrite(buffer, 1, rett.seq, f) < 0) {
 				perror("ERROR writing file");
 				exit(1);
 			}

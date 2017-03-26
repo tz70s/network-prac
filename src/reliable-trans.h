@@ -15,6 +15,10 @@
 #define SEQ_SIZE 20
 #define WRITE_FILE 3
 
+typedef struct ret {
+	int type;
+	int seq;
+} _RET_;
 
 // Multiplex for getting seq numbers
 
@@ -75,11 +79,11 @@ static inline void concact(char *conString, size_t conLen, char * secString, siz
 
 }
 
-static void timeout(int sock, int secs) {
+static void timeout(int sock, int usec) {
 
 	struct timeval tv;
-	tv.tv_sec = secs;  /* 30 Secs Timeout */
-	tv.tv_usec = 0;  // Not init'ing this can cause strange errors
+	tv.tv_sec = 0;  /* Secs Timeout */
+	tv.tv_usec = usec;  // usecs timeout
 	setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv,sizeof(struct timeval));
 
 }
@@ -159,15 +163,15 @@ static int reliableSender(int sock, uint8_t *buffer, size_t buffer_len, int SEQ,
 
 // Reliable receiver with ACK+SEQ response
 
-static int reliableReceiver(int sock, struct sockaddr_in clientAddr, socklen_t clientAddrLen, char *payload) {
+static _RET_ reliableReceiver(int sock, struct sockaddr_in clientAddr, socklen_t clientAddrLen, char *payload) {
 	
 	int payloadSize = 0;
 	uint8_t buffer [CHUNK+SEQ_SIZE+3];
 	uint8_t seqString [CHUNK+SEQ_SIZE];
 	uint8_t data [CHUNK];
 	uint8_t msgType[3];
-	int seq = 0;
-	int RET = 0;
+
+	_RET_ rett;
 
 	// DEFINE RET NUMBER
 	// 0 : ERROR/PACKET LOSS
@@ -182,39 +186,45 @@ static int reliableReceiver(int sock, struct sockaddr_in clientAddr, socklen_t c
 	getMsgType(buffer, CHUNK+SEQ_SIZE+3, msgType);
 	getData(buffer, CHUNK+SEQ_SIZE+3, seqString);
 
-	// check msg type
+	// init return
+	
+	rett.type = 0;
+	rett.seq = 0;
 
+	// check msg type
+	
 	if (strcmp(msgType, "WRQ") == 0) {
-		seq = 0;
-		RET = 1;
+		rett.seq = 0;
+		rett.type = 1;
 		strcpy(payload, seqString);
 	} else if (strcmp(msgType, "DAT") == 0) {
 		// get seq
-		seq = getSeq(seqString, CHUNK+SEQ_SIZE);
+		rett.seq = getSeq(seqString, CHUNK+SEQ_SIZE);
 		getData(seqString, CHUNK+SEQ_SIZE, data);
 		memcpy(payload, data, CHUNK);
 		
-		RET = 2;
+		rett.type = 2;
 
 	} else if (strcmp(msgType, "END") == 0) {
-		seq = getSeq(seqString, CHUNK+SEQ_SIZE);
+		rett.seq = getSeq(seqString, CHUNK+SEQ_SIZE);
 		getData(seqString, CHUNK+SEQ_SIZE, data);
-		memcpy(payload, data, seq);
-		RET = seq;
+		memcpy(payload, data, rett.seq);
+		rett.type = 3;
 	} else {
 		// ERROR
-		seq = -1;
-		RET = 0;
+		rett.type = 0;
+		rett.seq = -1;
 	}
 	
 	// return ACK
 	uint8_t retACK[SEQ_SIZE+3];
-	sprintf(retACK,"%d\nACK",seq);
+	sprintf(retACK,"%d\nACK",rett.seq);
 
 	payloadSize = sendto(sock, retACK, SEQ_SIZE+3, 0, (struct sockaddr *) &clientAddr, clientAddrLen);
 	errorMsg(payloadSize, "ERROR for ack seq");
 	printf("SEND ACK : %s\n", retACK);
-	return RET;
+	
+	return rett;
 }
 
 #endif
