@@ -4,12 +4,17 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include <arpa/inet.h>
 #include "init.h"
 
 #define CHUNK 1024
+
+static double timedifference_msec(struct timeval t0, struct timeval t1) {
+		return (t1.tv_sec - t0.tv_sec) * 1000.0f + (t1.tv_usec - t0.tv_usec) / 1000.0f;
+}
 
 static void fileHandle(int sock, char *filename) {
 	
@@ -34,7 +39,12 @@ static void fileHandle(int sock, char *filename) {
 
 	// start transfer file
 	
+	struct timeval start, end;
+	double elapsed;
+	
 	file = fopen(filename, "r");
+	
+	gettimeofday(&start, 0);
 	if(file) {
 		while ((nread = fread(buffer, 1, sizeof(buffer), file)) > 0) {
 			statusCode = write(sock, buffer, nread);
@@ -47,18 +57,28 @@ static void fileHandle(int sock, char *filename) {
 			// reset 
 			memset(buffer, 0, CHUNK);
 			
-			statusCode = read(sock, buffer, 8);
+			//statusCode = read(sock, buffer, 8);
 			
+			/*
 			if ( statusCode < 0 ) {
 				perror("ERROR reading from socket");
 				exit(1);
 			}
-			printf("CHUNK %d : %s\n", chunkNumber++, buffer);
+			*/
+			//printf("CHUNK %d : %s\n", chunkNumber++, buffer);
 			memset(buffer, 0, CHUNK);
 		}
 	}
-	printf("TOTAL TRANS SIZE : %lu\n", totalTrans);
+	
 	write(sock, "FILE_TRANSFER_DONE",CHUNK);
+
+	gettimeofday(&end, 0);
+	elapsed = timedifference_msec(start, end)/1000;
+
+	double throughput = (double)totalTrans*8/1024/1024/elapsed;
+	printf("Total transfer : %lu bytes for %f secs\n", totalTrans, elapsed);
+	printf("Throughput : %f Mbps\n", throughput);
+	fclose(file);
 }
 
 void tcpClientRun(char *host, char *port, char *fileName) {

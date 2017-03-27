@@ -53,13 +53,16 @@ static void tcpFileHandle(int clientSock) {
 			exit(1);
 		}
 		memset(buffer, 0, CHUNK);
-
+		
+		/*
 		retCode = write(clientSock, "RESPONSE", 8);
 	
 		if (retCode < 0) {
 			perror("ERROR writing to socket");
 			exit(1);
 		}
+		*/
+
 	}
 
 	fclose(f);
