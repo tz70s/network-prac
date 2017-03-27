@@ -48,6 +48,7 @@ static void fileHandle(int sock, char *filename) {
 	if(file) {
 		while ((nread = fread(buffer, 1, sizeof(buffer), file)) > 0) {
 			statusCode = write(sock, buffer, nread);
+			
 			if ( statusCode < 0 ) {
 				perror("ERROR writing to socket");
 				exit(1);
@@ -57,14 +58,13 @@ static void fileHandle(int sock, char *filename) {
 			// reset 
 			memset(buffer, 0, CHUNK);
 			
-			//statusCode = read(sock, buffer, 8);
 			
-			/*
+			statusCode = read(sock, buffer, 8);
 			if ( statusCode < 0 ) {
 				perror("ERROR reading from socket");
 				exit(1);
 			}
-			*/
+
 			//printf("CHUNK %d : %s\n", chunkNumber++, buffer);
 			memset(buffer, 0, CHUNK);
 		}

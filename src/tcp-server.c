@@ -32,6 +32,7 @@ static void tcpFileHandle(int clientSock) {
 	memset(buffer, 0, CHUNK);
 
 	long int totalRecvSize = 0;
+	
 	while(1) {
 		
 		int retCode = read(clientSock, buffer, CHUNK);
@@ -46,23 +47,24 @@ static void tcpFileHandle(int clientSock) {
 			printf("FINISHED\n");
 			break;
 		}
+		
 		totalRecvSize += retCode;
 
 		if ( fwrite(buffer, 1, retCode, f) < 0) {
 			perror("ERROR writing file");
 			exit(1);
 		}
+		
 		memset(buffer, 0, CHUNK);
 		
-		/*
+		
 		retCode = write(clientSock, "RESPONSE", 8);
 	
 		if (retCode < 0) {
 			perror("ERROR writing to socket");
 			exit(1);
 		}
-		*/
-
+		
 	}
 
 	fclose(f);
