@@ -70,7 +70,6 @@ static void fileHandle(int sock, char *filename, struct sockaddr_in servAddr, so
 
 			while(1) {
 				totalTrans++;
-				//printf("Timestamp : %lu\n", current);
 							
 				if (reliableSender(sock, buffer, nread, seq, servAddr, servAddrLen) == 0) {
 					printf("SEND SUCCESS\n");

@@ -83,21 +83,18 @@ static void fileHandle(int servSock, struct sockaddr_in clientAddr, socklen_t cl
 
 void udpServerRun(char *port) {
 	
-	while(1) {
-		
-		// initialized
-		int servSock = initUDPServer(atoi(port));
+	// initialized
+	int servSock = initUDPServer(atoi(port));
 
-		// create client sock addr
-		struct sockaddr_in clientAddr;
+	// create client sock addr
+	struct sockaddr_in clientAddr;
 	
-		// initialized
-		memset(&clientAddr, 0, sizeof(clientAddr));
+	// initialized
+	memset(&clientAddr, 0, sizeof(clientAddr));
 	
-		socklen_t clientAddrSize = sizeof(clientAddr);
+	socklen_t clientAddrSize = sizeof(clientAddr);
 	
-		fileHandle(servSock, clientAddr, clientAddrSize);
+	fileHandle(servSock, clientAddr, clientAddrSize);
 
-		close(servSock);
-	}
+	close(servSock);
 }
