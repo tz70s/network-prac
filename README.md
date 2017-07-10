@@ -1,6 +1,6 @@
-# Network Lab in NUKU
+## network prac
 
-## Lab1
+### tftp
 
 File transfer based on TCP and TFTP
 
